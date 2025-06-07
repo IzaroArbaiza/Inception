@@ -1,0 +1,74 @@
+version: '3.7'
+
+services:
+  mariadb:
+    container_name: mariadb
+    build: requirements/mariadb
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    networks:
+      - network
+    restart: always
+    env_file: .env
+    secrets:
+      - db_root_password
+      - db_password
+
+  wordpress:
+    container_name: wordpress
+    build: requirements/wordpress
+    ports:
+      - "9000:9000"
+    volumes:
+      - wordpress_data:/var/www/wordpress
+    networks:
+      - network
+    restart: always
+    env_file: .env
+    depends_on:
+      - mariadb
+    secrets:
+      - db_password
+      - wp_super_password
+
+  nginx:
+    container_name: nginx
+    build: requirements/nginx
+    ports:
+      - "443:443"
+    volumes:
+      - wordpress_data:/var/www/wordpress:ro
+    networks:
+      - network
+    restart: always
+    env_file: .env
+    depends_on:
+      - wordpress
+
+networks:
+  network:
+    driver: bridge
+
+volumes:
+  mariadb_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /home/iarbaiza/data/mariadb
+      o: bind
+  wordpress_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /home/iarbaiza/data/wordpress
+      o: bind
+
+secrets:
+  db_password:
+    file: ../secrets/db_password.txt
+  db_root_password:
+    file: ../secrets/db_root_password.txt
+  wp_super_password:
+    file: ../secrets/credentials.txt
